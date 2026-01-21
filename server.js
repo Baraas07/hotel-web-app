@@ -1,12 +1,23 @@
-const express = require('express');
+const express = require("express");
 const app = express();
 
-// Serve static files (HTML)
 app.use(express.static(__dirname));
 
-// Azure يوفر PORT تلقائيًا
-const PORT = process.env.PORT || 3000;
+// صفحة تعرض معلومات المستخدم من Headers (Easy Auth)
+app.get("/me", (req, res) => {
+  // Easy Auth يحقن JSON base64 في هيدر اسمه X-MS-CLIENT-PRINCIPAL
+  const principal = req.headers["x-ms-client-principal"];
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  if (!principal) {
+    return res.status(401).send("Not authenticated (no principal header).");
+  }
+
+  const decoded = Buffer.from(principal, "base64").toString("utf8");
+  const user = JSON.parse(decoded);
+
+  res.setHeader("Content-Type", "application/json");
+  res.send(JSON.stringify(user, null, 2));
 });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Running on port", PORT));
